@@ -1,0 +1,21 @@
+{
+  "name": "experimental-garden-chat",
+  "version": "1.0.0",
+  "description": "少人数向け限定公開チャットアプリ",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "lint": "eslint .",
+    "test": "node --test test/*.test.js"
+  },
+  "keywords": ["chat", "websocket", "realtime"],
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.0",
+    "socket.io": "^4.8.0"
+  },
+  "devDependencies": {
+    "eslint": "^9.0.0"
+  }
+}

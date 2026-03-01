@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>チャットルーム — Experimental Garden</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div class="chat-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <span class="logo-icon-sm">🌱</span>
+        <span class="sidebar-title">Experimental Garden</span>
+      </div>
+      <div class="room-info">
+        <div class="room-code-label">招待コード</div>
+        <div class="room-code" id="room-code">------</div>
+        <button class="btn-copy" id="copy-code" title="コピー">📋</button>
+      </div>
+      <div class="member-section">
+        <h3>メンバー <span id="member-count">0</span></h3>
+        <ul id="member-list"></ul>
+      </div>
+      <div class="sidebar-footer">
+        <button class="btn outline small" id="leave-btn">退出する</button>
+      </div>
+    </aside>
+
+    <!-- Main chat area -->
+    <main class="chat-main">
+      <header class="chat-header">
+        <button class="hamburger" id="toggle-sidebar" aria-label="メニュー">☰</button>
+        <h2 id="header-room-code">ルーム</h2>
+        <span class="header-members" id="header-member-count">0人</span>
+      </header>
+
+      <div class="messages" id="messages">
+        <div class="welcome-message">
+          <p>🌱 ルームへようこそ！招待コードを仲間に共有してチャットを始めましょう。</p>
+        </div>
+      </div>
+
+      <div class="typing-indicator hidden" id="typing-indicator">
+        <span id="typing-names"></span> が入力中…
+      </div>
+
+      <form class="message-form" id="message-form">
+        <input
+          type="text"
+          id="message-input"
+          placeholder="メッセージを入力…"
+          maxlength="2000"
+          autocomplete="off"
+          required
+        />
+        <button type="submit" class="btn-send" aria-label="送信">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 2L11 13"></path>
+            <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
+          </svg>
+        </button>
+      </form>
+    </main>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/chat.js"></script>
+</body>
+</html>
