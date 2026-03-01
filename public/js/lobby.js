@@ -26,7 +26,8 @@
 
     joinError.classList.add("hidden");
 
-    const res = await fetch(`/api/rooms/${encodeURIComponent(code)}/exists`);
+    const base = window.CHAT_SERVER_URL || "";
+    const res = await fetch(`${base}/api/rooms/${encodeURIComponent(code)}/exists`);
     const data = await res.json();
     if (!data.exists) {
       joinError.textContent = "ルームが見つかりません。招待コードを確認してください。";
@@ -42,7 +43,8 @@
     const name = document.getElementById("create-name").value.trim();
     if (!name) return;
 
-    const res = await fetch("/api/rooms", { method: "POST" });
+    const base = window.CHAT_SERVER_URL || "";
+    const res = await fetch(`${base}/api/rooms`, { method: "POST" });
     const data = await res.json();
     window.location.href = `/chat.html?room=${encodeURIComponent(data.inviteCode)}&name=${encodeURIComponent(name)}`;
   });

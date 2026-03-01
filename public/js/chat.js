@@ -8,7 +8,8 @@
     return;
   }
 
-  const socket = io();
+  const SERVER_URL = window.CHAT_SERVER_URL || "";
+  const socket = io(SERVER_URL);
   const messagesEl = document.getElementById("messages");
   const messageForm = document.getElementById("message-form");
   const messageInput = document.getElementById("message-input");

@@ -6,7 +6,17 @@ const path = require("path");
 
 const app = express();
 const httpServer = createServer(app);
-const io = new Server(httpServer);
+
+const CORS_ORIGINS = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(",")
+  : ["capacitor://localhost", "ionic://localhost", "http://localhost"];
+
+const io = new Server(httpServer, {
+  cors: {
+    origin: CORS_ORIGINS,
+    methods: ["GET", "POST"],
+  },
+});
 
 const PORT = process.env.PORT || 3000;
 
@@ -17,6 +27,15 @@ const rooms = new Map();
 function generateInviteCode() {
   return crypto.randomBytes(3).toString("hex");
 }
+
+// --- CORS for native apps ---
+
+app.use((_req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type");
+  next();
+});
 
 // --- Static files ---
 
