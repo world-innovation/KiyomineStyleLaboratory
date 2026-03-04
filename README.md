@@ -9,9 +9,9 @@
 - リアルタイムメッセージング (WebSocket / Socket.IO)
 - タイピングインジケーター、メンバー一覧
 - モバイル対応レスポンシブUI (ダークテーマ)
-- PWA対応 (ホーム画面に追加可能)
+- PWA対応 (iPhone / Android のホーム画面に追加可能)
+- TWA対応 (Google Play Store — Chromebookからビルド可能)
 - Capacitor対応 (iOS App Store)
-- TWA対応 (Google Play Store)
 
 ## クイックスタート
 
@@ -22,228 +22,229 @@ npm run dev       # → http://localhost:3000
 
 ---
 
-## リリース方法の比較
+## リリース全体像
 
-| 方法 | Mac必要? | 費用 | 審査 | おすすめ度 |
+```
+サーバーをデプロイ (Step 0 — 全方法共通)
+    │
+    ├─→ URLを共有するだけ        → iPhone / Android どちらも使える (PWA)
+    │
+    ├─→ Google Play に公開       → Chromebook から可能 (TWA)
+    │
+    └─→ App Store に公開         → クラウドCI or Mac が必要 (Capacitor)
+```
+
+| 方法 | iPhone | Android | Mac必要? | ストア費用 |
 |---|---|---|---|---|
-| **A. PWA配布** | 不要 | サーバー代のみ | なし | ★★★★★ |
-| **B. PWABuilder** | 不要 | $25 (Play) / $99/年 (iOS) | あり | ★★★★☆ |
-| **C. GitHub Actions** | 不要 | 無料 (CI) + ストア費用 | あり | ★★★☆☆ |
-| **D. Mac + Xcode** | 必要 | $99/年 | あり | ★★☆☆☆ |
-
-**Chromebookユーザーは方法 A または B がおすすめです。**
+| **PWA (URLのみ)** | ✅ Safari | ✅ Chrome | 不要 | 無料 |
+| **Google Play (TWA)** | ❌ | ✅ | **不要** | $25 一回 |
+| **App Store (Capacitor)** | ✅ | ❌ | CI利用で不要 | $99/年 |
 
 ---
 
-## 方法 A: PWAとして配布 (最も簡単・Mac不要)
+## Step 0: サーバーをデプロイする (全方法共通)
 
-アプリストアを経由せずに、**URLを共有するだけ**で配布できます。  
-ユーザーはブラウザの「ホーム画面に追加」でネイティブアプリのように使えます。
+どの方法でも、まずサーバーをインターネットに公開します。
 
-### Step 1: サーバーをデプロイする
+| サービス | WebSocket対応 | 料金 | デプロイ方法 |
+|---|---|---|---|
+| [Railway](https://railway.app) | ✅ | 無料枠あり | Git push |
+| [Render](https://render.com) | ✅ | 無料枠あり | Git push |
+| [Fly.io](https://fly.io) | ✅ | 無料枠あり | CLI |
 
-| サービス | 特徴 | 料金 |
-|---|---|---|
-| [Railway](https://railway.app) | Git pushでデプロイ、WebSocket対応 | 無料枠あり |
-| [Render](https://render.com) | Node.js対応、自動デプロイ | 無料枠あり |
-| [Fly.io](https://fly.io) | エッジ配信、WebSocket対応 | 無料枠あり |
-
-**Railway でのデプロイ例:**
+### Railway でのデプロイ (推奨・最も簡単)
 
 ```
-1. https://railway.app にGitHubでログイン
-2. 「New Project」 → 「Deploy from GitHub repo」
+1. https://railway.app に GitHub でログイン
+2. 「New Project」→「Deploy from GitHub repo」
 3. このリポジトリを選択
-4. 環境変数: PORT = 3000
-5. デプロイ完了 → URLが発行される (例: https://your-app.railway.app)
+4. 自動でデプロイが始まる
+5. 完了するとURLが発行される
+   例: https://your-app-xxxx.railway.app
 ```
 
-### Step 2: URLを仲間に共有
-
-```
-https://your-app.railway.app
-```
-
-共有されたURLを開くだけでチャットが使えます。  
-Android/iOSのChromeで「ホーム画面に追加」すると、アプリアイコンで起動できます。
-
-### PWAのユーザー体験
-
-- フルスクリーン表示 (ブラウザのUI非表示)
-- ホーム画面にアイコンが追加される
-- オフラインでもUIが表示される (サーバー接続は必要)
-- プッシュ通知も追加可能 (要実装)
+デプロイ後のURLを以下で使います。
 
 ---
 
-## 方法 B: PWABuilder でストア公開 (Mac不要)
+## iPhone で使えるようにする
 
-[PWABuilder](https://www.pwabuilder.com) はMicrosoftが提供する無料ツールで、  
-デプロイ済みのPWAをAndroid/iOS/Windowsアプリに変換できます。  
-**ブラウザだけで完結** — Chromebookから操作可能です。
+### 方法 1: PWA (おすすめ・最も簡単)
 
-### 前提条件
+デプロイ後のURLをiPhoneユーザーに共有するだけ。
 
-- 方法 A の Step 1 でサーバーがデプロイ済みであること
-- Google Play: Google Developer アカウント ($25 一回払い)
-- App Store: Apple Developer Program ($99/年)
-
-### Step 1: PWABuilder でパッケージ生成
+**iPhoneユーザーの操作:**
 
 ```
-1. https://www.pwabuilder.com にアクセス
-2. デプロイ済みURLを入力 (例: https://your-app.railway.app)
-3. 「Start」→ PWAスコアが表示される
-4. 「Package For Stores」をクリック
+1. Safari でURLを開く
+2. 共有ボタン (□↑) をタップ
+3. 「ホーム画面に追加」をタップ
+4. 「追加」をタップ
 ```
 
-### Step 2a: Google Play Store 向け (Android)
+これでホーム画面にアプリアイコンが追加され、  
+タップするとフルスクリーン (ブラウザUI非表示) で起動します。
 
-```
-1. PWABuilder → 「Android」を選択
-2. 「Generate」→ APK/AAB ファイルがダウンロードされる
-3. Google Play Console (https://play.google.com/console) にログイン
-4. 「アプリを作成」→ AABファイルをアップロード
-5. ストア情報を入力 → 審査に提出
-```
+**PWAの体験:**
+- ✅ フルスクリーン表示
+- ✅ ホーム画面にアイコン
+- ✅ ネイティブアプリ風の見た目
+- ✅ ストア審査不要
+- ❌ App Storeからのインストールではない
 
-**限定公開のコツ:**
-- 内部テスト → 最大100人、審査不要、メール招待
-- クローズドテスト → 審査あり、人数制限なし、URL共有可能
-- リリース → 「非公開」に設定すれば検索に出ない
+### 方法 2: App Store (クラウドCIで Mac不要)
 
-### Step 2b: App Store 向け (iOS)
-
-```
-1. PWABuilder → 「iOS」を選択
-2. 「Generate」→ Xcodeプロジェクトがダウンロードされる
-3. ⚠️ 署名にはMacまたはクラウドCI (方法C) が必要
-   → 方法 C を参照
-```
-
----
-
-## 方法 C: GitHub Actions でクラウドビルド (Mac不要)
-
-GitHub Actions の macOS ランナーを使えば、  
-**Macを持っていなくてもiOSアプリをビルド**できます。
-
-### Android ビルド
-
-```
-1. GitHub → Actions → 「Build Android (TWA)」
-2. 「Run workflow」→ デプロイ先ホスト名を入力
-3. ビルド完了 → Artifacts から APK をダウンロード
-```
-
-### iOS ビルド (署名なし)
+GitHub Actions の macOS ランナーでビルドできます。
 
 ```
 1. GitHub → Actions → 「Build iOS (Capacitor)」
 2. 「Run workflow」→ デプロイ先URLを入力
-3. ビルド完了 → Artifacts からビルド成果物をダウンロード
+3. ビルド成果物をダウンロード
 ```
 
-> **注意:** App Store への提出には署名が必要です。  
-> GitHub Secrets に証明書を追加するか、[Codemagic](https://codemagic.io)  
-> などの専用CIサービスを使うことで、完全にMac不要で提出できます。
-
-### Codemagic (Mac完全不要でApp Store提出)
-
-```
-1. https://codemagic.io にGitHubでログイン
-2. このリポジトリを接続
-3. Capacitor/Ionic アプリとして設定
-4. Apple Developer アカウントを連携 (証明書を自動管理)
-5. ビルド → App Store Connect に自動アップロード
-```
+署名付きビルドには [Codemagic](https://codemagic.io) がおすすめ:
+- Apple Developer アカウントを連携するだけで証明書を自動管理
+- App Store Connect に自動アップロード
+- 完全に Mac 不要
 
 ---
 
-## 方法 D: Mac + Xcode (従来の方法)
+## Google Play で公開する (Chromebook から可能)
 
-Mac をお持ちの場合の手順です。
+### 前提条件
+
+| 必要なもの | 説明 |
+|---|---|
+| Google Developer アカウント | $25 一回払い — [play.google.com/console](https://play.google.com/console) |
+| Node.js | Chromebook の Linux 環境にインストール |
+| デプロイ済みURL | Step 0 で取得 |
+
+### 方法 A: ビルドスクリプトで一発ビルド (おすすめ)
+
+Chromebook のターミナル (Linux) で実行:
 
 ```bash
+# 1. リポジトリをクローン
+git clone https://github.com/your-user/your-repo.git
+cd your-repo
 npm install
-npm run build:web
-npm run cap:init        # 初回のみ
-npm run cap:sync
-npm run cap:open        # Xcode が開く
+
+# 2. Android アプリをビルド (URLを自分のものに変更)
+./scripts/build-twa.sh https://your-app.railway.app
+
+# → twa-build/app-release-signed.apk  (テスト用)
+# → twa-build/app-release-bundle.aab  (Play Store提出用)
 ```
 
-Xcode で Signing を設定 → Product → Archive → App Store Connect へアップロード。
+初回は JDK と Android SDK が自動ダウンロードされます (10分程度)。
 
-詳細は [Apple Developer ドキュメント](https://developer.apple.com/documentation/xcode/distributing-your-app-for-beta-testing-and-releases) を参照。
+### 方法 B: PWABuilder (ブラウザだけで完結)
+
+CLI を使いたくない場合:
+
+```
+1. https://www.pwabuilder.com にアクセス
+2. デプロイ済みURLを入力
+3. 「Package For Stores」→「Android」→「Generate」
+4. APK / AAB がダウンロードされる
+```
+
+### 方法 C: GitHub Actions (全自動)
+
+```
+1. GitHub → Actions → 「Build Android (TWA)」
+2. 「Run workflow」→ デプロイ済みURLを入力
+3. ビルド完了 → Artifacts から APK/AAB をダウンロード
+```
+
+### Play Store に提出する
+
+```
+1. https://play.google.com/console にログイン
+2. 「アプリを作成」
+   - アプリ名: Experimental Garden
+   - デフォルトの言語: 日本語
+   - アプリ / ゲーム: アプリ
+   - 無料 / 有料: 無料
+3. 「リリース」→ トラックを選択:
+```
+
+| トラック | 審査 | 上限 | おすすめ |
+|---|---|---|---|
+| **内部テスト** | 不要 | 100人 | ★★★★★ 少人数ならこれ |
+| クローズドテスト | あり | 無制限 | ★★★☆☆ |
+| オープンテスト | あり | 無制限 | ★★☆☆☆ |
+| 製品版 | あり | 無制限 | ★☆☆☆☆ |
+
+```
+4. AAB ファイルをアップロード
+5. 「ストアの掲載情報」を入力:
+   - スクリーンショット (スマホ2枚以上)
+   - 簡単な説明 / 詳しい説明
+   - アプリアイコン (512x512 — public/icons/icon-512x512.png を使用)
+6. 「審査に送信」(内部テストなら即公開)
+```
+
+### TWA の追加設定: Digital Asset Links
+
+Play Store に公開後、アプリがフルスクリーンで動作するには  
+サーバーに署名証明書のフィンガープリントを登録する必要があります。
+
+```bash
+# ビルド時に表示される SHA-256 フィンガープリントを環境変数に設定
+TWA_SHA256_FINGERPRINT="XX:XX:XX:..."
+
+# デプロイ先の環境変数に追加 (Railway の場合: Settings → Variables)
+```
+
+確認: `https://your-app.railway.app/.well-known/assetlinks.json`
 
 ---
 
-## 限定公開の方法
+## 限定公開の方法まとめ
 
-少人数に限定して公開するための方法:
+| 方法 | 対象OS | 審査 | 上限 | 手軽さ |
+|---|---|---|---|---|
+| **PWA (URL共有)** | 全OS | なし | 無制限 | ★★★★★ |
+| **Play 内部テスト** | Android | なし | 100人 | ★★★★☆ |
+| **TestFlight** | iOS | 簡易 | 10,000人 | ★★★☆☆ |
+| **Play クローズドテスト** | Android | あり | 無制限 | ★★★☆☆ |
 
-| 方法 | 対象 | 審査 | 上限人数 |
-|---|---|---|---|
-| **PWA (URLのみ)** | 全員 | なし | 無制限 |
-| **TestFlight** | iOS | 簡易 | 10,000人 |
-| **Play 内部テスト** | Android | なし | 100人 |
-| **Play クローズドテスト** | Android | あり | 無制限 |
-| **App Store 非公開リンク** | iOS | フル審査 | 無制限 |
-
-**おすすめ:** まずPWA (方法A) で始めて、必要になったらストア公開に移行。
+**おすすめの組み合わせ:**
+- iPhone ユーザー → PWA (URL共有 + ホーム画面に追加)
+- Android ユーザー → Play 内部テスト or PWA
 
 ---
 
 ## 審査チェックリスト (ストア公開時)
 
-- [ ] プライバシーポリシーページ (`/privacy`)
-- [ ] コンテンツモデレーション方針の記載
+- [ ] プライバシーポリシーページ
+- [ ] コンテンツモデレーション方針
 - [ ] 不適切コンテンツの報告機能
 - [ ] スクリーンショット (実際のアプリ画面)
-- [ ] アプリアイコン (1024x1024 PNG)
+- [ ] アプリアイコン (512x512 PNG)
 
 ---
 
-## 開発コマンド一覧
+## 開発コマンド
 
 | コマンド | 説明 |
 |---|---|
-| `npm run dev` | 開発サーバー起動 (ホットリロード) |
-| `npm start` | 本番サーバー起動 |
-| `npm run lint` | ESLint 実行 |
-| `npm test` | テスト実行 |
-| `npm run build:web` | Web アセットを `www/` にコピー |
-| `npm run cap:sync` | Web → iOS 同期 |
-| `npm run cap:open` | Xcode で iOS プロジェクトを開く |
+| `npm run dev` | 開発サーバー (ホットリロード) |
+| `npm start` | 本番サーバー |
+| `npm run lint` | ESLint |
+| `npm test` | テスト |
+| `npm run build:web` | Capacitor 用ビルド |
+| `./scripts/build-twa.sh <URL>` | Android TWA ビルド |
 
 ## 環境変数
 
 | 変数 | デフォルト | 説明 |
 |---|---|---|
 | `PORT` | `3000` | サーバーポート |
-| `CORS_ORIGINS` | `capacitor://localhost,...` | CORS許可オリジン (カンマ区切り) |
-
-## プロジェクト構成
-
-```
-├── server.js                       # Express + Socket.IO サーバー
-├── capacitor.config.ts             # Capacitor (iOS) 設定
-├── twa-manifest.json               # TWA (Android) 設定
-├── public/                         # Web フロントエンド
-│   ├── index.html                  # ロビー画面
-│   ├── chat.html                   # チャット画面
-│   ├── sw.js                       # Service Worker (PWA)
-│   ├── manifest.json               # PWA マニフェスト
-│   ├── css/style.css               # スタイル
-│   ├── js/lobby.js                 # ロビーロジック
-│   ├── js/chat.js                  # チャットロジック
-│   └── icons/                      # アプリアイコン
-├── .github/workflows/
-│   ├── build-android.yml           # Android クラウドビルド
-│   └── build-ios.yml               # iOS クラウドビルド
-├── test/                           # テスト
-└── scripts/                        # ユーティリティスクリプト
-```
+| `CORS_ORIGINS` | `capacitor://localhost,...` | CORS許可オリジン |
+| `TWA_SHA256_FINGERPRINT` | (空) | Android TWA 署名フィンガープリント |
+| `TWA_PACKAGE_NAME` | `com.experimentalgarden.chat` | Android パッケージ名 |
 
 ## ライセンス
 

@@ -3,8 +3,8 @@ name: Build Android (TWA)
 on:
   workflow_dispatch:
     inputs:
-      host:
-        description: "Deployed server hostname (e.g. your-app.railway.app)"
+      deploy_url:
+        description: "Deployed URL (e.g. https://your-app.railway.app)"
         required: true
         type: string
 
@@ -27,34 +27,23 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Install Bubblewrap
-        run: npm install -g @nickvdp/nickvdp-nickvdp-nickvdp@latest 2>/dev/null || npm install -g @nickvdp/nickvdp@latest 2>/dev/null || npm install -g @nickvdp/nickvdp 2>/dev/null || npm install -g @nickvdp/nickvdp || true
+        run: npm install -g @bubblewrap/cli
 
-      - name: Prepare manifest
+      - name: Init TWA project
         run: |
-          HOST="${{ inputs.host }}"
-          node -e "
-            const fs = require('fs');
-            const m = JSON.parse(fs.readFileSync('twa-manifest.json','utf8'));
-            m.host = '${HOST}';
-            m.iconUrl = 'https://${HOST}/icons/icon-512x512.svg';
-            m.maskableIconUrl = 'https://${HOST}/icons/icon-512x512.svg';
-            m.webManifestUrl = 'https://${HOST}/manifest.json';
-            m.fullScopeUrl = 'https://${HOST}/';
-            fs.writeFileSync('twa-manifest.json', JSON.stringify(m, null, 2));
-          "
+          mkdir -p twa-build && cd twa-build
+          bubblewrap init --manifest "${{ inputs.deploy_url }}/manifest.json"
 
-      - name: Build with Bubblewrap
+      - name: Build APK and AAB
         run: |
-          npx bubblewrap init --manifest="https://${{ inputs.host }}/manifest.json" --directory=./twa-build
           cd twa-build
-          npx bubblewrap build
-        continue-on-error: true
+          bubblewrap build
 
-      - name: Upload APK
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: android-apk
+          name: android-release
           path: |
-            **/*.apk
-            **/*.aab
+            twa-build/app-release-signed.apk
+            twa-build/app-release-bundle.aab
           if-no-files-found: warn

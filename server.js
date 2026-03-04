@@ -41,6 +41,23 @@ app.use((_req, res, next) => {
 
 app.use(express.static(path.join(__dirname, "public")));
 
+// --- TWA Digital Asset Links ---
+
+app.get("/.well-known/assetlinks.json", (_req, res) => {
+  const fingerprint = process.env.TWA_SHA256_FINGERPRINT || "";
+  const packageName = process.env.TWA_PACKAGE_NAME || "com.experimentalgarden.chat";
+  res.json([
+    {
+      relation: ["delegate_permission/common.handle_all_urls"],
+      target: {
+        namespace: "android_app",
+        package_name: packageName,
+        sha256_cert_fingerprints: fingerprint ? [fingerprint] : [],
+      },
+    },
+  ]);
+});
+
 // --- REST API ---
 
 app.use(express.json());

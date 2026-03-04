@@ -22,6 +22,7 @@ module.exports = [
         after: "readonly",
         URL: "readonly",
         URLSearchParams: "readonly",
+        Buffer: "readonly",
       },
     },
     rules: {
