@@ -1,0 +1,35 @@
+{
+  "name": "experimental-garden-chat",
+  "version": "1.0.0",
+  "description": "少人数向け限定公開チャットアプリ",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "lint": "eslint .",
+    "test": "node --test test/*.test.js",
+    "build:web": "copyfiles -u 1 \"public/**/*\" www",
+    "cap:init": "npx cap add ios",
+    "cap:sync": "npm run build:web && npx cap sync ios",
+    "cap:open": "npx cap open ios"
+  },
+  "keywords": [
+    "chat",
+    "websocket",
+    "realtime"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@capacitor/core": "^8.1.0",
+    "@capacitor/ios": "^8.1.0",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.1",
+    "express": "^4.21.0",
+    "socket.io": "^4.8.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.1.0",
+    "copyfiles": "^2.4.1",
+    "eslint": "^9.0.0"
+  }
+}

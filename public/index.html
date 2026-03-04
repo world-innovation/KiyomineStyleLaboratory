@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Experimental Garden — チャット</title>
+  <meta name="theme-color" content="#6c63ff" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/icons/icon-192x192.svg" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div class="lobby-container">
+    <div class="lobby-card">
+      <div class="logo">
+        <span class="logo-icon">🌱</span>
+        <h1>Experimental Garden</h1>
+        <p class="subtitle">少人数のプライベートチャット</p>
+      </div>
+
+      <div class="tab-group">
+        <button class="tab active" data-tab="join">ルームに参加</button>
+        <button class="tab" data-tab="create">新規作成</button>
+      </div>
+
+      <form id="join-form" class="form active">
+        <div class="field">
+          <label for="join-code">招待コード</label>
+          <input type="text" id="join-code" placeholder="例: a1b2c3" maxlength="12" required />
+        </div>
+        <div class="field">
+          <label for="join-name">表示名</label>
+          <input type="text" id="join-name" placeholder="あなたの名前" maxlength="20" required />
+        </div>
+        <button type="submit" class="btn primary">参加する</button>
+        <p id="join-error" class="error hidden"></p>
+      </form>
+
+      <form id="create-form" class="form">
+        <div class="field">
+          <label for="create-name">表示名</label>
+          <input type="text" id="create-name" placeholder="あなたの名前" maxlength="20" required />
+        </div>
+        <button type="submit" class="btn primary">ルームを作成</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/lobby.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js");
+    }
+  </script>
+</body>
+</html>

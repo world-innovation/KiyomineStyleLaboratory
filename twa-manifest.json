@@ -1,0 +1,32 @@
+{
+  "packageId": "com.experimentalgarden.chat",
+  "host": "your-chat-server.example.com",
+  "name": "Experimental Garden",
+  "launcherName": "Garden Chat",
+  "display": "standalone",
+  "themeColor": "#6c63ff",
+  "navigationColor": "#0f1117",
+  "navigationColorDark": "#0f1117",
+  "navigationDividerColor": "#0f1117",
+  "navigationDividerColorDark": "#0f1117",
+  "backgroundColor": "#0f1117",
+  "enableNotifications": false,
+  "startUrl": "/",
+  "iconUrl": "https://your-chat-server.example.com/icons/icon-512x512.svg",
+  "maskableIconUrl": "https://your-chat-server.example.com/icons/icon-512x512.svg",
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://your-chat-server.example.com/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://your-chat-server.example.com/",
+  "minSdkVersion": 23,
+  "orientation": "portrait",
+  "fingerprints": []
+}

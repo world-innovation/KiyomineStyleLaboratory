@@ -1,0 +1,63 @@
+name: Build iOS (Capacitor)
+
+on:
+  workflow_dispatch:
+    inputs:
+      server_url:
+        description: "Deployed server URL (e.g. https://your-app.railway.app)"
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Configure server URL
+        run: |
+          node -e "
+            const fs = require('fs');
+            let cfg = fs.readFileSync('capacitor.config.ts', 'utf8');
+            cfg = cfg.replace(
+              '// url: \"https://your-server.example.com\"',
+              'url: \"${{ inputs.server_url }}\"'
+            );
+            fs.writeFileSync('capacitor.config.ts', cfg);
+          "
+
+      - name: Build web assets
+        run: npm run build:web
+
+      - name: Add iOS platform
+        run: npx cap add ios
+
+      - name: Sync to iOS
+        run: npx cap sync ios
+
+      - name: Build iOS (unsigned)
+        run: |
+          cd ios/App
+          xcodebuild -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination generic/platform=iOS \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build
+          path: ios/App/build/
+          if-no-files-found: warn

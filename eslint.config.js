@@ -1,0 +1,71 @@
+module.exports = [
+  {
+    ignores: ["www/**", "ios/**", "android/**", "node_modules/**"],
+  },
+  {
+    files: ["**/*.js"],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: "commonjs",
+      globals: {
+        console: "readonly",
+        process: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+        __dirname: "readonly",
+        require: "readonly",
+        module: "readonly",
+        exports: "readonly",
+        describe: "readonly",
+        it: "readonly",
+        before: "readonly",
+        after: "readonly",
+        URL: "readonly",
+        URLSearchParams: "readonly",
+      },
+    },
+    rules: {
+      "no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+      "no-undef": "error",
+      eqeqeq: "warn",
+      "no-var": "error",
+      "prefer-const": "warn",
+    },
+  },
+  {
+    files: ["public/**/*.js"],
+    ignores: ["public/sw.js"],
+    languageOptions: {
+      sourceType: "module",
+      ecmaVersion: 2022,
+      globals: {
+        window: "readonly",
+        document: "readonly",
+        fetch: "readonly",
+        alert: "readonly",
+        navigator: "readonly",
+        io: "readonly",
+        console: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+        HTMLElement: "readonly",
+        URLSearchParams: "readonly",
+      },
+    },
+  },
+  {
+    files: ["public/sw.js"],
+    languageOptions: {
+      sourceType: "module",
+      ecmaVersion: 2022,
+      globals: {
+        self: "readonly",
+        caches: "readonly",
+        fetch: "readonly",
+        URL: "readonly",
+        Response: "readonly",
+        Promise: "readonly",
+      },
+    },
+  },
+];
