@@ -1,7 +1,9 @@
 module.exports = [
   {
+    ignores: ["www/**", "ios/**", "android/**", "node_modules/**"],
+  },
+  {
     files: ["**/*.js"],
-    ignores: ["node_modules/**"],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: "commonjs",
@@ -32,6 +34,7 @@ module.exports = [
   },
   {
     files: ["public/**/*.js"],
+    ignores: ["public/sw.js"],
     languageOptions: {
       sourceType: "module",
       ecmaVersion: 2022,
@@ -47,6 +50,21 @@ module.exports = [
         clearTimeout: "readonly",
         HTMLElement: "readonly",
         URLSearchParams: "readonly",
+      },
+    },
+  },
+  {
+    files: ["public/sw.js"],
+    languageOptions: {
+      sourceType: "module",
+      ecmaVersion: 2022,
+      globals: {
+        self: "readonly",
+        caches: "readonly",
+        fetch: "readonly",
+        URL: "readonly",
+        Response: "readonly",
+        Promise: "readonly",
       },
     },
   },

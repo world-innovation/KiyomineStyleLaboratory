@@ -7,147 +7,202 @@
 
 - 招待コード制のプライベートルーム
 - リアルタイムメッセージング (WebSocket / Socket.IO)
-- タイピングインジケーター
-- メンバー一覧
+- タイピングインジケーター、メンバー一覧
 - モバイル対応レスポンシブUI (ダークテーマ)
 - PWA対応 (ホーム画面に追加可能)
-- Capacitor対応 (iOS / App Storeリリース可能)
+- Capacitor対応 (iOS App Store)
+- TWA対応 (Google Play Store)
 
-## クイックスタート (Web版)
+## クイックスタート
 
 ```bash
 npm install
-npm run dev       # 開発サーバー (自動リロード)
-# → http://localhost:3000
+npm run dev       # → http://localhost:3000
 ```
 
-## App Store リリース手順
+---
 
-### 前提条件
+## リリース方法の比較
 
-| 必要なもの | 説明 |
-|---|---|
-| Mac (macOS 14+) | Xcodeが必要 |
-| Xcode 16+ | iOS ビルド用 |
-| Apple Developer Program | 年額 ¥15,800 ($99) — [developer.apple.com](https://developer.apple.com/programs/) |
-| サーバー | チャットサーバーのデプロイ先 (後述) |
+| 方法 | Mac必要? | 費用 | 審査 | おすすめ度 |
+|---|---|---|---|---|
+| **A. PWA配布** | 不要 | サーバー代のみ | なし | ★★★★★ |
+| **B. PWABuilder** | 不要 | $25 (Play) / $99/年 (iOS) | あり | ★★★★☆ |
+| **C. GitHub Actions** | 不要 | 無料 (CI) + ストア費用 | あり | ★★★☆☆ |
+| **D. Mac + Xcode** | 必要 | $99/年 | あり | ★★☆☆☆ |
+
+**Chromebookユーザーは方法 A または B がおすすめです。**
+
+---
+
+## 方法 A: PWAとして配布 (最も簡単・Mac不要)
+
+アプリストアを経由せずに、**URLを共有するだけ**で配布できます。  
+ユーザーはブラウザの「ホーム画面に追加」でネイティブアプリのように使えます。
 
 ### Step 1: サーバーをデプロイする
 
-ネイティブアプリはローカルHTMLを表示するため、チャットサーバーをインターネットに公開する必要があります。
-
-**おすすめのホスティング先:**
-
 | サービス | 特徴 | 料金 |
 |---|---|---|
-| [Railway](https://railway.app) | Git push でデプロイ、WebSocket対応 | 無料枠あり |
+| [Railway](https://railway.app) | Git pushでデプロイ、WebSocket対応 | 無料枠あり |
 | [Render](https://render.com) | Node.js対応、自動デプロイ | 無料枠あり |
 | [Fly.io](https://fly.io) | エッジ配信、WebSocket対応 | 無料枠あり |
 
-デプロイ後、`capacitor.config.ts` の `server.url` にURLを設定:
+**Railway でのデプロイ例:**
 
-```ts
-server: {
-  url: "https://your-chat-server.railway.app",
-}
+```
+1. https://railway.app にGitHubでログイン
+2. 「New Project」 → 「Deploy from GitHub repo」
+3. このリポジトリを選択
+4. 環境変数: PORT = 3000
+5. デプロイ完了 → URLが発行される (例: https://your-app.railway.app)
 ```
 
-### Step 2: アプリアイコンを作成する
+### Step 2: URLを仲間に共有
 
-App Store には **1024 x 1024 px の PNG** が必要です。
+```
+https://your-app.railway.app
+```
 
-1. `public/icons/icon.svg` をベースにデザインツールで作成
-2. [App Icon Generator](https://www.appicon.co/) で全サイズを一括生成
-3. 生成されたファイルを `ios/App/App/Assets.xcassets/AppIcon.appiconset/` に配置
+共有されたURLを開くだけでチャットが使えます。  
+Android/iOSのChromeで「ホーム画面に追加」すると、アプリアイコンで起動できます。
 
-### Step 3: iOS プロジェクトを初期化する (Mac上で実行)
+### PWAのユーザー体験
+
+- フルスクリーン表示 (ブラウザのUI非表示)
+- ホーム画面にアイコンが追加される
+- オフラインでもUIが表示される (サーバー接続は必要)
+- プッシュ通知も追加可能 (要実装)
+
+---
+
+## 方法 B: PWABuilder でストア公開 (Mac不要)
+
+[PWABuilder](https://www.pwabuilder.com) はMicrosoftが提供する無料ツールで、  
+デプロイ済みのPWAをAndroid/iOS/Windowsアプリに変換できます。  
+**ブラウザだけで完結** — Chromebookから操作可能です。
+
+### 前提条件
+
+- 方法 A の Step 1 でサーバーがデプロイ済みであること
+- Google Play: Google Developer アカウント ($25 一回払い)
+- App Store: Apple Developer Program ($99/年)
+
+### Step 1: PWABuilder でパッケージ生成
+
+```
+1. https://www.pwabuilder.com にアクセス
+2. デプロイ済みURLを入力 (例: https://your-app.railway.app)
+3. 「Start」→ PWAスコアが表示される
+4. 「Package For Stores」をクリック
+```
+
+### Step 2a: Google Play Store 向け (Android)
+
+```
+1. PWABuilder → 「Android」を選択
+2. 「Generate」→ APK/AAB ファイルがダウンロードされる
+3. Google Play Console (https://play.google.com/console) にログイン
+4. 「アプリを作成」→ AABファイルをアップロード
+5. ストア情報を入力 → 審査に提出
+```
+
+**限定公開のコツ:**
+- 内部テスト → 最大100人、審査不要、メール招待
+- クローズドテスト → 審査あり、人数制限なし、URL共有可能
+- リリース → 「非公開」に設定すれば検索に出ない
+
+### Step 2b: App Store 向け (iOS)
+
+```
+1. PWABuilder → 「iOS」を選択
+2. 「Generate」→ Xcodeプロジェクトがダウンロードされる
+3. ⚠️ 署名にはMacまたはクラウドCI (方法C) が必要
+   → 方法 C を参照
+```
+
+---
+
+## 方法 C: GitHub Actions でクラウドビルド (Mac不要)
+
+GitHub Actions の macOS ランナーを使えば、  
+**Macを持っていなくてもiOSアプリをビルド**できます。
+
+### Android ビルド
+
+```
+1. GitHub → Actions → 「Build Android (TWA)」
+2. 「Run workflow」→ デプロイ先ホスト名を入力
+3. ビルド完了 → Artifacts から APK をダウンロード
+```
+
+### iOS ビルド (署名なし)
+
+```
+1. GitHub → Actions → 「Build iOS (Capacitor)」
+2. 「Run workflow」→ デプロイ先URLを入力
+3. ビルド完了 → Artifacts からビルド成果物をダウンロード
+```
+
+> **注意:** App Store への提出には署名が必要です。  
+> GitHub Secrets に証明書を追加するか、[Codemagic](https://codemagic.io)  
+> などの専用CIサービスを使うことで、完全にMac不要で提出できます。
+
+### Codemagic (Mac完全不要でApp Store提出)
+
+```
+1. https://codemagic.io にGitHubでログイン
+2. このリポジトリを接続
+3. Capacitor/Ionic アプリとして設定
+4. Apple Developer アカウントを連携 (証明書を自動管理)
+5. ビルド → App Store Connect に自動アップロード
+```
+
+---
+
+## 方法 D: Mac + Xcode (従来の方法)
+
+Mac をお持ちの場合の手順です。
 
 ```bash
-# 依存インストール
 npm install
-
-# Web アセットをビルド
 npm run build:web
-
-# iOS プロジェクトを追加 (初回のみ)
-npm run cap:init
-
-# Web → iOS に同期
+npm run cap:init        # 初回のみ
 npm run cap:sync
-
-# Xcode で開く
-npm run cap:open
+npm run cap:open        # Xcode が開く
 ```
 
-### Step 4: Xcode で設定する
+Xcode で Signing を設定 → Product → Archive → App Store Connect へアップロード。
 
-1. **Signing & Capabilities** → 自分の Apple Developer Team を選択
-2. **Bundle Identifier** → `com.experimentalgarden.chat` (必要に応じ変更)
-3. **Display Name** → `Experimental Garden`
-4. **Deployment Target** → iOS 16.0 以上推奨
+詳細は [Apple Developer ドキュメント](https://developer.apple.com/documentation/xcode/distributing-your-app-for-beta-testing-and-releases) を参照。
 
-### Step 5: 限定公開の方法を選ぶ
+---
 
-少人数に限定公開するには、以下の3つの方法があります:
+## 限定公開の方法
 
-#### 方法 A: TestFlight (おすすめ — 最も簡単)
+少人数に限定して公開するための方法:
 
-| 項目 | 詳細 |
-|---|---|
-| 対象人数 | 最大 10,000人 |
-| 審査 | 初回のみ簡易審査 |
-| 配布方法 | メールで招待 or 公開リンク |
-| 有効期間 | ビルドごとに 90日 |
-| 費用 | Apple Developer Program のみ |
+| 方法 | 対象 | 審査 | 上限人数 |
+|---|---|---|---|
+| **PWA (URLのみ)** | 全員 | なし | 無制限 |
+| **TestFlight** | iOS | 簡易 | 10,000人 |
+| **Play 内部テスト** | Android | なし | 100人 |
+| **Play クローズドテスト** | Android | あり | 無制限 |
+| **App Store 非公開リンク** | iOS | フル審査 | 無制限 |
 
-```
-Xcode → Product → Archive → Distribute App → App Store Connect
-→ App Store Connect で TestFlight → 外部テスター招待
-```
+**おすすめ:** まずPWA (方法A) で始めて、必要になったらストア公開に移行。
 
-**少人数チャットにはこれが最適です。** 審査も軽く、招待制で配布できます。
+---
 
-#### 方法 B: App Store 非公開リンク配布
+## 審査チェックリスト (ストア公開時)
 
-App Store に公開するが、**検索に表示させない**方法:
+- [ ] プライバシーポリシーページ (`/privacy`)
+- [ ] コンテンツモデレーション方針の記載
+- [ ] 不適切コンテンツの報告機能
+- [ ] スクリーンショット (実際のアプリ画面)
+- [ ] アプリアイコン (1024x1024 PNG)
 
-1. App Store Connect → アプリ → 価格と配信状況
-2. 「App Storeで検索可能」を**オフ**
-3. 直接リンクを共有した人だけがダウンロード可能
-
-#### 方法 C: Apple Business Manager / カスタムApp
-
-法人向け。社内限定配布に最適:
-
-1. [Apple Business Manager](https://business.apple.com) に組織を登録
-2. App Store Connect → カスタムApp として配布
-3. 指定した組織のみ利用可能
-
-### Step 6: App Store Connect にアップロード
-
-```
-1. Xcode → Product → Archive
-2. Archive 完了 → Distribute App → App Store Connect
-3. App Store Connect (https://appstoreconnect.apple.com) にログイン
-4. アプリ情報を入力:
-   - アプリ名: Experimental Garden
-   - カテゴリ: ソーシャルネットワーキング
-   - スクリーンショット (6.7インチ, 6.1インチ 各3枚以上)
-   - プライバシーポリシーURL
-   - 説明文
-5. 審査に提出
-```
-
-### Step 7: 審査のポイント
-
-App Store 審査でリジェクトされないためのチェックリスト:
-
-- [ ] プライバシーポリシーページを用意 (サーバーに `/privacy` 等で配置)
-- [ ] アプリ内にログイン不要、または Apple Sign In を実装
-- [ ] 最低限のコンテンツモデレーション方針を記載
-- [ ] スパム・不適切コンテンツの報告機能 (チャットアプリの場合ほぼ必須)
-- [ ] 最低限のUI品質 (クラッシュしない、主要機能が動く)
-- [ ] スクリーンショットが実際のアプリと一致
+---
 
 ## 開発コマンド一覧
 
@@ -171,18 +226,23 @@ App Store 審査でリジェクトされないためのチェックリスト:
 ## プロジェクト構成
 
 ```
-├── server.js              # Express + Socket.IO サーバー
-├── capacitor.config.ts    # Capacitor (iOS) 設定
-├── public/                # Web フロントエンド
-│   ├── index.html         # ロビー画面
-│   ├── chat.html          # チャット画面
-│   ├── manifest.json      # PWA マニフェスト
-│   ├── css/style.css      # スタイル
-│   ├── js/lobby.js        # ロビーロジック
-│   ├── js/chat.js         # チャットロジック
-│   └── icons/             # アプリアイコン
-├── test/                  # テスト
-└── scripts/               # ユーティリティスクリプト
+├── server.js                       # Express + Socket.IO サーバー
+├── capacitor.config.ts             # Capacitor (iOS) 設定
+├── twa-manifest.json               # TWA (Android) 設定
+├── public/                         # Web フロントエンド
+│   ├── index.html                  # ロビー画面
+│   ├── chat.html                   # チャット画面
+│   ├── sw.js                       # Service Worker (PWA)
+│   ├── manifest.json               # PWA マニフェスト
+│   ├── css/style.css               # スタイル
+│   ├── js/lobby.js                 # ロビーロジック
+│   ├── js/chat.js                  # チャットロジック
+│   └── icons/                      # アプリアイコン
+├── .github/workflows/
+│   ├── build-android.yml           # Android クラウドビルド
+│   └── build-ios.yml               # iOS クラウドビルド
+├── test/                           # テスト
+└── scripts/                        # ユーティリティスクリプト
 ```
 
 ## ライセンス
