@@ -92,20 +92,117 @@ npm run dev       # → http://localhost:3000
 - ✅ ストア審査不要
 - ❌ App Storeからのインストールではない
 
-### 方法 2: App Store (クラウドCIで Mac不要)
+### 方法 2: App Store に公開 (Mac不要)
 
-GitHub Actions の macOS ランナーでビルドできます。
+2つの方法があります。**Codemagic が最も簡単です。**
+
+| CI サービス | 証明書管理 | 難易度 | 費用 |
+|---|---|---|---|
+| **Codemagic** | 自動 (Apple IDでログインするだけ) | ★ 簡単 | 無料枠あり |
+| **GitHub Actions** | 手動 (Secrets に登録) | ★★★ 上級 | 無料枠あり |
+
+---
+
+#### 方法 2a: Codemagic で App Store 提出 (おすすめ)
+
+**前提条件:**
+- Apple Developer Program ($99/年) — [developer.apple.com](https://developer.apple.com/programs/)
+- Step 0 でサーバーがデプロイ済み
+
+**手順:**
 
 ```
-1. GitHub → Actions → 「Build iOS (Capacitor)」
-2. 「Run workflow」→ デプロイ先URLを入力
-3. ビルド成果物をダウンロード
+1. https://codemagic.io に GitHub アカウントでサインアップ
+2. 「Add application」→ このリポジトリを選択
+3. ワークフローを選択: codemagic.yaml を使用
 ```
 
-署名付きビルドには [Codemagic](https://codemagic.io) がおすすめ:
-- Apple Developer アカウントを連携するだけで証明書を自動管理
-- App Store Connect に自動アップロード
-- 完全に Mac 不要
+```
+4. Settings → Environment variables:
+   - SERVER_URL = https://your-app.railway.app (デプロイ済みURL)
+```
+
+```
+5. Settings → Code signing → iOS:
+   - 「Automatic」を選択
+   - Apple ID とパスワードを入力
+   → 証明書とプロビジョニングプロファイルが自動生成される
+```
+
+```
+6. Settings → Distribution → App Store Connect:
+   - 「Connect」→ Apple ID でログイン
+   - App Store Connect API キーが自動設定される
+```
+
+```
+7. 「Start new build」→ ios-release ワークフローを選択
+8. ビルド完了 → 自動で TestFlight にアップロードされる
+9. App Store Connect → TestFlight → テスターを招待
+```
+
+**これだけです。** Codemagic が証明書の作成・管理・更新をすべて自動で行います。
+
+---
+
+#### 方法 2b: GitHub Actions で App Store 提出 (上級者向け)
+
+自分で証明書を作成し、GitHub Secrets に登録する方法です。
+
+**Step 1: Apple Developer で証明書を作成**
+
+App Store Connect API キーの作成:
+```
+1. https://appstoreconnect.apple.com → ユーザとアクセス → 統合 → キー
+2. 「+」→ 名前: "GitHub Actions"、役割: "App Manager"
+3. キーをダウンロード (.p8 ファイル)
+4. 「Issuer ID」と「キー ID」をメモ
+```
+
+iOS Distribution 証明書の作成:
+```
+※ Mac が必要な唯一の作業 (友人の Mac を借りるか、下記の代替方法を使用)
+
+Mac の場合:
+1. キーチェーンアクセス → 証明書アシスタント → 認証局に証明書を要求
+2. developer.apple.com → Certificates → 「+」→ Apple Distribution
+3. CSR をアップロード → 証明書をダウンロード
+4. キーチェーンから .p12 でエクスポート
+
+Mac がない場合:
+→ Codemagic (方法 2a) を使うのが最も簡単
+→ または https://appstoreconnect.apple.com の自動署名を利用
+```
+
+**Step 2: GitHub Secrets に登録**
+
+```
+GitHub → Settings → Secrets and variables → Actions → New repository secret
+
+6つの Secret を登録:
+```
+
+| Secret 名 | 値 | 取得方法 |
+|---|---|---|
+| `IOS_CERTIFICATE_P12_BASE64` | .p12 を base64 エンコード | `base64 -i cert.p12` |
+| `IOS_CERTIFICATE_PASSWORD` | .p12 のパスワード | 自分で設定したもの |
+| `IOS_PROVISION_PROFILE_BASE64` | .mobileprovision を base64 | `base64 -i profile.mobileprovision` |
+| `APPSTORE_ISSUER_ID` | App Store Connect Issuer ID | Step 1 でメモしたもの |
+| `APPSTORE_API_KEY_ID` | API キー ID | Step 1 でメモしたもの |
+| `APPSTORE_API_PRIVATE_KEY` | .p8 ファイルの中身 | テキストエディタで開く |
+
+**Step 3: ワークフロー実行**
+
+```
+1. GitHub → Actions → 「Build & Deploy iOS」
+2. 「Run workflow」:
+   - server_url: デプロイ済みURL
+   - submit_to_testflight: ✅ チェック
+3. ビルド → 署名 → TestFlight アップロード が全自動で実行
+4. App Store Connect → TestFlight → テスターを招待
+```
+
+**Secrets を設定しない場合:** 署名なしビルドが生成されます (テスト用)。
 
 ---
 
