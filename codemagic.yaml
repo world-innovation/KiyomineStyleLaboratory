@@ -1,101 +1,113 @@
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# Codemagic CI/CD — Mac不要で App Store 提出
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Codemagic CI/CD — Chromebook / Mac不要で App Store (TestFlight) 提出
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
-# セットアップ:
-#   1. https://codemagic.io にGitHubでサインアップ
-#   2. このリポジトリを接続
-#   3. 環境変数を設定:
-#      - SERVER_URL: デプロイ済みサーバーURL
-#   4. Apple Developer 連携:
-#      Codemagic → Settings → Code signing → iOS
-#      → 「Automatic」を選択 → Apple ID でログイン
-#      → 証明書とプロファイルが自動生成される
-#   5. 「Start build」をクリック
+# セットアップ手順: docs/SETUP_CODEMAGIC.md を参照
 #
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+definitions:
+  scripts:
+    - &install_deps
+      name: Install dependencies
+      script: npm ci
+
+    - &set_server_url
+      name: Set server URL
+      script: |
+        node -e "
+          const fs = require('fs');
+          let c = fs.readFileSync('capacitor.config.ts','utf8');
+          c = c.replace(
+            /\/\/ url: .https:\/\/your-server\.example\.com./,
+            'url: \"' + process.env.SERVER_URL + '\"'
+          );
+          fs.writeFileSync('capacitor.config.ts', c);
+          console.log('Server URL set to: ' + process.env.SERVER_URL);
+        "
+
+    - &build_web
+      name: Build web assets
+      script: npm run build:web
+
+    - &setup_ios
+      name: Add & sync iOS platform
+      script: |
+        npx cap add ios 2>/dev/null || true
+        npx cap sync ios
 
 workflows:
+  # ━━━ 本番ビルド: TestFlight に自動アップロード ━━━
   ios-release:
-    name: iOS App Store Build
+    name: iOS Release → TestFlight
     max_build_duration: 30
     instance_type: mac_mini_m2
-    labels:
-      - ios
 
     environment:
       node: 22
       xcode: latest
-      groups:
-        - app_store_connect
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.experimentalgarden.chat
+      groups:
+        - app_store_connect
       vars:
-        SERVER_URL: https://your-app.railway.app
+        SERVER_URL: ${SERVER_URL}
 
     triggering:
       events:
         - push
+        - tag
       branch_patterns:
         - pattern: "release/*"
+          include: true
+        - pattern: "main"
+          include: true
+      tag_patterns:
+        - pattern: "v*"
           include: true
       cancel_previous_builds: true
 
     scripts:
-      - name: Install dependencies
-        script: npm ci
-
-      - name: Set server URL
-        script: |
-          node -e "
-            const fs = require('fs');
-            let c = fs.readFileSync('capacitor.config.ts','utf8');
-            c = c.replace(
-              /\/\/ url: .https:\/\/your-server\.example\.com./,
-              'url: \"$SERVER_URL\"'
-            );
-            fs.writeFileSync('capacitor.config.ts', c);
-          "
-
-      - name: Build web assets
-        script: npm run build:web
-
-      - name: Add iOS platform
-        script: npx cap add ios
-
-      - name: Sync web to iOS
-        script: npx cap sync ios
+      - *install_deps
+      - *set_server_url
+      - *build_web
+      - *setup_ios
 
       - name: Set up code signing
         script: xcode-project use-profiles
+
+      - name: Increment build number
+        script: |
+          cd ios/App
+          BUILD_NUMBER=$(($(app-store-connect get-latest-testflight-build-number \
+            "$APP_STORE_CONNECT_KEY_IDENTIFIER" 2>/dev/null || echo 0) + 1))
+          agvtool new-version -all $BUILD_NUMBER
+          echo "Build number: $BUILD_NUMBER"
 
       - name: Build IPA
         script: |
           cd ios/App
           xcode-project build-ipa \
-            --workspace App.xcworkspace \
+            --project App.xcodeproj \
             --scheme App \
-            --config Release
+            --config Release \
+            --archive-flags="-destination 'generic/platform=iOS'"
 
     artifacts:
       - ios/App/build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
 
     publishing:
       app_store_connect:
         auth: integration
         submit_to_testflight: true
         beta_groups:
-          - "Internal Testers"
-      email:
-        recipients:
-          - your-email@example.com
-        notify:
-          success: true
-          failure: true
+          - Internal Testers
 
+  # ━━━ テストビルド: PR チェック用 (署名なし) ━━━
   ios-test:
-    name: iOS Test Build (署名なし)
+    name: iOS Test Build
     max_build_duration: 20
     instance_type: mac_mini_m2
 
@@ -103,7 +115,7 @@ workflows:
       node: 22
       xcode: latest
       vars:
-        SERVER_URL: https://your-app.railway.app
+        SERVER_URL: ${SERVER_URL}
 
     triggering:
       events:
@@ -111,44 +123,30 @@ workflows:
       cancel_previous_builds: true
 
     scripts:
-      - name: Install dependencies
-        script: npm ci
+      - *install_deps
 
       - name: Lint & Test
         script: |
           npm run lint
           npm test
 
-      - name: Set server URL
-        script: |
-          node -e "
-            const fs = require('fs');
-            let c = fs.readFileSync('capacitor.config.ts','utf8');
-            c = c.replace(
-              /\/\/ url: .https:\/\/your-server\.example\.com./,
-              'url: \"$SERVER_URL\"'
-            );
-            fs.writeFileSync('capacitor.config.ts', c);
-          "
+      - *set_server_url
+      - *build_web
+      - *setup_ios
 
-      - name: Build web assets
-        script: npm run build:web
-
-      - name: Add iOS platform
-        script: npx cap add ios
-
-      - name: Sync web to iOS
-        script: npx cap sync ios
-
-      - name: Build (unsigned)
+      - name: Build (unsigned check)
         script: |
           cd ios/App
-          xcodebuild -workspace App.xcworkspace \
+          xcodebuild \
+            -project App.xcodeproj \
             -scheme App \
             -configuration Release \
             -sdk iphoneos \
-            -destination generic/platform=iOS \
+            -destination 'generic/platform=iOS' \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             build
+
+    artifacts:
+      - /tmp/xcodebuild_logs/*.log

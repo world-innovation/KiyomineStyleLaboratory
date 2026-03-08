@@ -63,11 +63,10 @@ jobs:
       - name: Build web assets
         run: npm run build:web
 
-      - name: Add iOS platform
-        run: npx cap add ios
-
-      - name: Sync web → iOS
-        run: npx cap sync ios
+      - name: Add & sync iOS platform
+        run: |
+          npx cap add ios 2>/dev/null || true
+          npx cap sync ios
 
       # ── 署名準備 ──
       - name: Install Apple certificate and provisioning profile
@@ -106,11 +105,11 @@ jobs:
         if: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 != '' }}
         run: |
           cd ios/App
-          xcodebuild -workspace App.xcworkspace \
+          xcodebuild -project App.xcodeproj \
             -scheme App \
             -configuration Release \
             -sdk iphoneos \
-            -destination generic/platform=iOS \
+            -destination 'generic/platform=iOS' \
             -archivePath $RUNNER_TEMP/App.xcarchive \
             archive
 
@@ -118,11 +117,11 @@ jobs:
         if: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 == '' }}
         run: |
           cd ios/App
-          xcodebuild -workspace App.xcworkspace \
+          xcodebuild -project App.xcodeproj \
             -scheme App \
             -configuration Release \
             -sdk iphoneos \
-            -destination generic/platform=iOS \
+            -destination 'generic/platform=iOS' \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
