@@ -9,9 +9,9 @@
 - リアルタイムメッセージング (WebSocket / Socket.IO)
 - タイピングインジケーター、メンバー一覧
 - モバイル対応レスポンシブUI (ダークテーマ)
-- PWA対応 (ホーム画面に追加可能)
+- PWA対応 (iPhone / Android のホーム画面に追加可能)
+- TWA対応 (Google Play Store — Chromebookからビルド可能)
 - Capacitor対応 (iOS App Store)
-- TWA対応 (Google Play Store)
 
 ## クイックスタート
 
@@ -22,228 +22,326 @@ npm run dev       # → http://localhost:3000
 
 ---
 
-## リリース方法の比較
+## リリース全体像
 
-| 方法 | Mac必要? | 費用 | 審査 | おすすめ度 |
+```
+サーバーをデプロイ (Step 0 — 全方法共通)
+    │
+    ├─→ URLを共有するだけ        → iPhone / Android どちらも使える (PWA)
+    │
+    ├─→ Google Play に公開       → Chromebook から可能 (TWA)
+    │
+    └─→ App Store に公開         → クラウドCI or Mac が必要 (Capacitor)
+```
+
+| 方法 | iPhone | Android | Mac必要? | ストア費用 |
 |---|---|---|---|---|
-| **A. PWA配布** | 不要 | サーバー代のみ | なし | ★★★★★ |
-| **B. PWABuilder** | 不要 | $25 (Play) / $99/年 (iOS) | あり | ★★★★☆ |
-| **C. GitHub Actions** | 不要 | 無料 (CI) + ストア費用 | あり | ★★★☆☆ |
-| **D. Mac + Xcode** | 必要 | $99/年 | あり | ★★☆☆☆ |
-
-**Chromebookユーザーは方法 A または B がおすすめです。**
+| **PWA (URLのみ)** | ✅ Safari | ✅ Chrome | 不要 | 無料 |
+| **Google Play (TWA)** | ❌ | ✅ | **不要** | $25 一回 |
+| **App Store (Capacitor)** | ✅ | ❌ | CI利用で不要 | $99/年 |
 
 ---
 
-## 方法 A: PWAとして配布 (最も簡単・Mac不要)
+## Step 0: サーバーをデプロイする (全方法共通)
 
-アプリストアを経由せずに、**URLを共有するだけ**で配布できます。  
-ユーザーはブラウザの「ホーム画面に追加」でネイティブアプリのように使えます。
+どの方法でも、まずサーバーをインターネットに公開します。
 
-### Step 1: サーバーをデプロイする
+| サービス | WebSocket対応 | 料金 | デプロイ方法 |
+|---|---|---|---|
+| [Railway](https://railway.app) | ✅ | 無料枠あり | Git push |
+| [Render](https://render.com) | ✅ | 無料枠あり | Git push |
+| [Fly.io](https://fly.io) | ✅ | 無料枠あり | CLI |
 
-| サービス | 特徴 | 料金 |
-|---|---|---|
-| [Railway](https://railway.app) | Git pushでデプロイ、WebSocket対応 | 無料枠あり |
-| [Render](https://render.com) | Node.js対応、自動デプロイ | 無料枠あり |
-| [Fly.io](https://fly.io) | エッジ配信、WebSocket対応 | 無料枠あり |
-
-**Railway でのデプロイ例:**
+### Railway でのデプロイ (推奨・最も簡単)
 
 ```
-1. https://railway.app にGitHubでログイン
-2. 「New Project」 → 「Deploy from GitHub repo」
+1. https://railway.app に GitHub でログイン
+2. 「New Project」→「Deploy from GitHub repo」
 3. このリポジトリを選択
-4. 環境変数: PORT = 3000
-5. デプロイ完了 → URLが発行される (例: https://your-app.railway.app)
+4. 自動でデプロイが始まる
+5. 完了するとURLが発行される
+   例: https://your-app-xxxx.railway.app
 ```
 
-### Step 2: URLを仲間に共有
-
-```
-https://your-app.railway.app
-```
-
-共有されたURLを開くだけでチャットが使えます。  
-Android/iOSのChromeで「ホーム画面に追加」すると、アプリアイコンで起動できます。
-
-### PWAのユーザー体験
-
-- フルスクリーン表示 (ブラウザのUI非表示)
-- ホーム画面にアイコンが追加される
-- オフラインでもUIが表示される (サーバー接続は必要)
-- プッシュ通知も追加可能 (要実装)
+デプロイ後のURLを以下で使います。
 
 ---
 
-## 方法 B: PWABuilder でストア公開 (Mac不要)
+## iPhone で使えるようにする
 
-[PWABuilder](https://www.pwabuilder.com) はMicrosoftが提供する無料ツールで、  
-デプロイ済みのPWAをAndroid/iOS/Windowsアプリに変換できます。  
-**ブラウザだけで完結** — Chromebookから操作可能です。
+### 方法 1: PWA (おすすめ・最も簡単)
+
+デプロイ後のURLをiPhoneユーザーに共有するだけ。
+
+**iPhoneユーザーの操作:**
+
+```
+1. Safari でURLを開く
+2. 共有ボタン (□↑) をタップ
+3. 「ホーム画面に追加」をタップ
+4. 「追加」をタップ
+```
+
+これでホーム画面にアプリアイコンが追加され、  
+タップするとフルスクリーン (ブラウザUI非表示) で起動します。
+
+**PWAの体験:**
+- ✅ フルスクリーン表示
+- ✅ ホーム画面にアイコン
+- ✅ ネイティブアプリ風の見た目
+- ✅ ストア審査不要
+- ❌ App Storeからのインストールではない
+
+### 方法 2: App Store に公開 (Mac不要)
+
+2つの方法があります。**Codemagic が最も簡単です。**
+
+| CI サービス | 証明書管理 | 難易度 | 費用 |
+|---|---|---|---|
+| **Codemagic** | 自動 (Apple IDでログインするだけ) | ★ 簡単 | 無料枠あり |
+| **GitHub Actions** | 手動 (Secrets に登録) | ★★★ 上級 | 無料枠あり |
+
+---
+
+#### 方法 2a: Codemagic で App Store 提出 (おすすめ)
+
+**前提条件:**
+- Apple Developer Program ($99/年) — [developer.apple.com](https://developer.apple.com/programs/)
+- Step 0 でサーバーがデプロイ済み
+
+**手順:**
+
+```
+1. https://codemagic.io に GitHub アカウントでサインアップ
+2. 「Add application」→ このリポジトリを選択
+3. ワークフローを選択: codemagic.yaml を使用
+```
+
+```
+4. Settings → Environment variables:
+   - SERVER_URL = https://your-app.railway.app (デプロイ済みURL)
+```
+
+```
+5. Settings → Code signing → iOS:
+   - 「Automatic」を選択
+   - Apple ID とパスワードを入力
+   → 証明書とプロビジョニングプロファイルが自動生成される
+```
+
+```
+6. Settings → Distribution → App Store Connect:
+   - 「Connect」→ Apple ID でログイン
+   - App Store Connect API キーが自動設定される
+```
+
+```
+7. 「Start new build」→ ios-release ワークフローを選択
+8. ビルド完了 → 自動で TestFlight にアップロードされる
+9. App Store Connect → TestFlight → テスターを招待
+```
+
+**これだけです。** Codemagic が証明書の作成・管理・更新をすべて自動で行います。
+
+---
+
+#### 方法 2b: GitHub Actions で App Store 提出 (上級者向け)
+
+自分で証明書を作成し、GitHub Secrets に登録する方法です。
+
+**Step 1: Apple Developer で証明書を作成**
+
+App Store Connect API キーの作成:
+```
+1. https://appstoreconnect.apple.com → ユーザとアクセス → 統合 → キー
+2. 「+」→ 名前: "GitHub Actions"、役割: "App Manager"
+3. キーをダウンロード (.p8 ファイル)
+4. 「Issuer ID」と「キー ID」をメモ
+```
+
+iOS Distribution 証明書の作成:
+```
+※ Mac が必要な唯一の作業 (友人の Mac を借りるか、下記の代替方法を使用)
+
+Mac の場合:
+1. キーチェーンアクセス → 証明書アシスタント → 認証局に証明書を要求
+2. developer.apple.com → Certificates → 「+」→ Apple Distribution
+3. CSR をアップロード → 証明書をダウンロード
+4. キーチェーンから .p12 でエクスポート
+
+Mac がない場合:
+→ Codemagic (方法 2a) を使うのが最も簡単
+→ または https://appstoreconnect.apple.com の自動署名を利用
+```
+
+**Step 2: GitHub Secrets に登録**
+
+```
+GitHub → Settings → Secrets and variables → Actions → New repository secret
+
+6つの Secret を登録:
+```
+
+| Secret 名 | 値 | 取得方法 |
+|---|---|---|
+| `IOS_CERTIFICATE_P12_BASE64` | .p12 を base64 エンコード | `base64 -i cert.p12` |
+| `IOS_CERTIFICATE_PASSWORD` | .p12 のパスワード | 自分で設定したもの |
+| `IOS_PROVISION_PROFILE_BASE64` | .mobileprovision を base64 | `base64 -i profile.mobileprovision` |
+| `APPSTORE_ISSUER_ID` | App Store Connect Issuer ID | Step 1 でメモしたもの |
+| `APPSTORE_API_KEY_ID` | API キー ID | Step 1 でメモしたもの |
+| `APPSTORE_API_PRIVATE_KEY` | .p8 ファイルの中身 | テキストエディタで開く |
+
+**Step 3: ワークフロー実行**
+
+```
+1. GitHub → Actions → 「Build & Deploy iOS」
+2. 「Run workflow」:
+   - server_url: デプロイ済みURL
+   - submit_to_testflight: ✅ チェック
+3. ビルド → 署名 → TestFlight アップロード が全自動で実行
+4. App Store Connect → TestFlight → テスターを招待
+```
+
+**Secrets を設定しない場合:** 署名なしビルドが生成されます (テスト用)。
+
+---
+
+## Google Play で公開する (Chromebook から可能)
 
 ### 前提条件
 
-- 方法 A の Step 1 でサーバーがデプロイ済みであること
-- Google Play: Google Developer アカウント ($25 一回払い)
-- App Store: Apple Developer Program ($99/年)
+| 必要なもの | 説明 |
+|---|---|
+| Google Developer アカウント | $25 一回払い — [play.google.com/console](https://play.google.com/console) |
+| Node.js | Chromebook の Linux 環境にインストール |
+| デプロイ済みURL | Step 0 で取得 |
 
-### Step 1: PWABuilder でパッケージ生成
+### 方法 A: ビルドスクリプトで一発ビルド (おすすめ)
+
+Chromebook のターミナル (Linux) で実行:
+
+```bash
+# 1. リポジトリをクローン
+git clone https://github.com/your-user/your-repo.git
+cd your-repo
+npm install
+
+# 2. Android アプリをビルド (URLを自分のものに変更)
+./scripts/build-twa.sh https://your-app.railway.app
+
+# → twa-build/app-release-signed.apk  (テスト用)
+# → twa-build/app-release-bundle.aab  (Play Store提出用)
+```
+
+初回は JDK と Android SDK が自動ダウンロードされます (10分程度)。
+
+### 方法 B: PWABuilder (ブラウザだけで完結)
+
+CLI を使いたくない場合:
 
 ```
 1. https://www.pwabuilder.com にアクセス
-2. デプロイ済みURLを入力 (例: https://your-app.railway.app)
-3. 「Start」→ PWAスコアが表示される
-4. 「Package For Stores」をクリック
+2. デプロイ済みURLを入力
+3. 「Package For Stores」→「Android」→「Generate」
+4. APK / AAB がダウンロードされる
 ```
 
-### Step 2a: Google Play Store 向け (Android)
-
-```
-1. PWABuilder → 「Android」を選択
-2. 「Generate」→ APK/AAB ファイルがダウンロードされる
-3. Google Play Console (https://play.google.com/console) にログイン
-4. 「アプリを作成」→ AABファイルをアップロード
-5. ストア情報を入力 → 審査に提出
-```
-
-**限定公開のコツ:**
-- 内部テスト → 最大100人、審査不要、メール招待
-- クローズドテスト → 審査あり、人数制限なし、URL共有可能
-- リリース → 「非公開」に設定すれば検索に出ない
-
-### Step 2b: App Store 向け (iOS)
-
-```
-1. PWABuilder → 「iOS」を選択
-2. 「Generate」→ Xcodeプロジェクトがダウンロードされる
-3. ⚠️ 署名にはMacまたはクラウドCI (方法C) が必要
-   → 方法 C を参照
-```
-
----
-
-## 方法 C: GitHub Actions でクラウドビルド (Mac不要)
-
-GitHub Actions の macOS ランナーを使えば、  
-**Macを持っていなくてもiOSアプリをビルド**できます。
-
-### Android ビルド
+### 方法 C: GitHub Actions (全自動)
 
 ```
 1. GitHub → Actions → 「Build Android (TWA)」
-2. 「Run workflow」→ デプロイ先ホスト名を入力
-3. ビルド完了 → Artifacts から APK をダウンロード
+2. 「Run workflow」→ デプロイ済みURLを入力
+3. ビルド完了 → Artifacts から APK/AAB をダウンロード
 ```
 
-### iOS ビルド (署名なし)
+### Play Store に提出する
 
 ```
-1. GitHub → Actions → 「Build iOS (Capacitor)」
-2. 「Run workflow」→ デプロイ先URLを入力
-3. ビルド完了 → Artifacts からビルド成果物をダウンロード
+1. https://play.google.com/console にログイン
+2. 「アプリを作成」
+   - アプリ名: Experimental Garden
+   - デフォルトの言語: 日本語
+   - アプリ / ゲーム: アプリ
+   - 無料 / 有料: 無料
+3. 「リリース」→ トラックを選択:
 ```
 
-> **注意:** App Store への提出には署名が必要です。  
-> GitHub Secrets に証明書を追加するか、[Codemagic](https://codemagic.io)  
-> などの専用CIサービスを使うことで、完全にMac不要で提出できます。
-
-### Codemagic (Mac完全不要でApp Store提出)
+| トラック | 審査 | 上限 | おすすめ |
+|---|---|---|---|
+| **内部テスト** | 不要 | 100人 | ★★★★★ 少人数ならこれ |
+| クローズドテスト | あり | 無制限 | ★★★☆☆ |
+| オープンテスト | あり | 無制限 | ★★☆☆☆ |
+| 製品版 | あり | 無制限 | ★☆☆☆☆ |
 
 ```
-1. https://codemagic.io にGitHubでログイン
-2. このリポジトリを接続
-3. Capacitor/Ionic アプリとして設定
-4. Apple Developer アカウントを連携 (証明書を自動管理)
-5. ビルド → App Store Connect に自動アップロード
+4. AAB ファイルをアップロード
+5. 「ストアの掲載情報」を入力:
+   - スクリーンショット (スマホ2枚以上)
+   - 簡単な説明 / 詳しい説明
+   - アプリアイコン (512x512 — public/icons/icon-512x512.png を使用)
+6. 「審査に送信」(内部テストなら即公開)
 ```
 
----
+### TWA の追加設定: Digital Asset Links
 
-## 方法 D: Mac + Xcode (従来の方法)
-
-Mac をお持ちの場合の手順です。
+Play Store に公開後、アプリがフルスクリーンで動作するには  
+サーバーに署名証明書のフィンガープリントを登録する必要があります。
 
 ```bash
-npm install
-npm run build:web
-npm run cap:init        # 初回のみ
-npm run cap:sync
-npm run cap:open        # Xcode が開く
+# ビルド時に表示される SHA-256 フィンガープリントを環境変数に設定
+TWA_SHA256_FINGERPRINT="XX:XX:XX:..."
+
+# デプロイ先の環境変数に追加 (Railway の場合: Settings → Variables)
 ```
 
-Xcode で Signing を設定 → Product → Archive → App Store Connect へアップロード。
-
-詳細は [Apple Developer ドキュメント](https://developer.apple.com/documentation/xcode/distributing-your-app-for-beta-testing-and-releases) を参照。
+確認: `https://your-app.railway.app/.well-known/assetlinks.json`
 
 ---
 
-## 限定公開の方法
+## 限定公開の方法まとめ
 
-少人数に限定して公開するための方法:
+| 方法 | 対象OS | 審査 | 上限 | 手軽さ |
+|---|---|---|---|---|
+| **PWA (URL共有)** | 全OS | なし | 無制限 | ★★★★★ |
+| **Play 内部テスト** | Android | なし | 100人 | ★★★★☆ |
+| **TestFlight** | iOS | 簡易 | 10,000人 | ★★★☆☆ |
+| **Play クローズドテスト** | Android | あり | 無制限 | ★★★☆☆ |
 
-| 方法 | 対象 | 審査 | 上限人数 |
-|---|---|---|---|
-| **PWA (URLのみ)** | 全員 | なし | 無制限 |
-| **TestFlight** | iOS | 簡易 | 10,000人 |
-| **Play 内部テスト** | Android | なし | 100人 |
-| **Play クローズドテスト** | Android | あり | 無制限 |
-| **App Store 非公開リンク** | iOS | フル審査 | 無制限 |
-
-**おすすめ:** まずPWA (方法A) で始めて、必要になったらストア公開に移行。
+**おすすめの組み合わせ:**
+- iPhone ユーザー → PWA (URL共有 + ホーム画面に追加)
+- Android ユーザー → Play 内部テスト or PWA
 
 ---
 
 ## 審査チェックリスト (ストア公開時)
 
-- [ ] プライバシーポリシーページ (`/privacy`)
-- [ ] コンテンツモデレーション方針の記載
+- [ ] プライバシーポリシーページ
+- [ ] コンテンツモデレーション方針
 - [ ] 不適切コンテンツの報告機能
 - [ ] スクリーンショット (実際のアプリ画面)
-- [ ] アプリアイコン (1024x1024 PNG)
+- [ ] アプリアイコン (512x512 PNG)
 
 ---
 
-## 開発コマンド一覧
+## 開発コマンド
 
 | コマンド | 説明 |
 |---|---|
-| `npm run dev` | 開発サーバー起動 (ホットリロード) |
-| `npm start` | 本番サーバー起動 |
-| `npm run lint` | ESLint 実行 |
-| `npm test` | テスト実行 |
-| `npm run build:web` | Web アセットを `www/` にコピー |
-| `npm run cap:sync` | Web → iOS 同期 |
-| `npm run cap:open` | Xcode で iOS プロジェクトを開く |
+| `npm run dev` | 開発サーバー (ホットリロード) |
+| `npm start` | 本番サーバー |
+| `npm run lint` | ESLint |
+| `npm test` | テスト |
+| `npm run build:web` | Capacitor 用ビルド |
+| `./scripts/build-twa.sh <URL>` | Android TWA ビルド |
 
 ## 環境変数
 
 | 変数 | デフォルト | 説明 |
 |---|---|---|
 | `PORT` | `3000` | サーバーポート |
-| `CORS_ORIGINS` | `capacitor://localhost,...` | CORS許可オリジン (カンマ区切り) |
-
-## プロジェクト構成
-
-```
-├── server.js                       # Express + Socket.IO サーバー
-├── capacitor.config.ts             # Capacitor (iOS) 設定
-├── twa-manifest.json               # TWA (Android) 設定
-├── public/                         # Web フロントエンド
-│   ├── index.html                  # ロビー画面
-│   ├── chat.html                   # チャット画面
-│   ├── sw.js                       # Service Worker (PWA)
-│   ├── manifest.json               # PWA マニフェスト
-│   ├── css/style.css               # スタイル
-│   ├── js/lobby.js                 # ロビーロジック
-│   ├── js/chat.js                  # チャットロジック
-│   └── icons/                      # アプリアイコン
-├── .github/workflows/
-│   ├── build-android.yml           # Android クラウドビルド
-│   └── build-ios.yml               # iOS クラウドビルド
-├── test/                           # テスト
-└── scripts/                        # ユーティリティスクリプト
-```
+| `CORS_ORIGINS` | `capacitor://localhost,...` | CORS許可オリジン |
+| `TWA_SHA256_FINGERPRINT` | (空) | Android TWA 署名フィンガープリント |
+| `TWA_PACKAGE_NAME` | `com.experimentalgarden.chat` | Android パッケージ名 |
 
 ## ライセンス
 

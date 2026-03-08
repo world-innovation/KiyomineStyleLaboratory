@@ -1,63 +1,198 @@
-name: Build iOS (Capacitor)
+name: Build & Deploy iOS
 
 on:
   workflow_dispatch:
     inputs:
       server_url:
-        description: "Deployed server URL (e.g. https://your-app.railway.app)"
+        description: "デプロイ済みURL (例: https://your-app.railway.app)"
         required: true
         type: string
+      submit_to_testflight:
+        description: "TestFlight に自動アップロードする"
+        required: false
+        type: boolean
+        default: false
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 必要な Secrets (GitHub → Settings → Secrets):
+#
+#   IOS_CERTIFICATE_P12_BASE64   - .p12 証明書を base64 エンコードしたもの
+#   IOS_CERTIFICATE_PASSWORD     - .p12 のパスワード
+#   IOS_PROVISION_PROFILE_BASE64 - .mobileprovision を base64 エンコードしたもの
+#   APPSTORE_ISSUER_ID           - App Store Connect API の Issuer ID
+#   APPSTORE_API_KEY_ID          - App Store Connect API の Key ID
+#   APPSTORE_API_PRIVATE_KEY     - App Store Connect API の .p8 秘密鍵の中身
+#
+# 取得方法は README の「GitHub Actions で App Store 提出」を参照
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 jobs:
   build:
     runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      APP_ID: com.experimentalgarden.chat
+      SCHEME: App
+      WORKSPACE: ios/App/App.xcworkspace
+
     steps:
+      # ── チェックアウト ──
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: "npm"
 
+      # ── 依存 & ビルド ──
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      - name: Configure server URL
+      - name: Set server URL in Capacitor config
         run: |
           node -e "
             const fs = require('fs');
-            let cfg = fs.readFileSync('capacitor.config.ts', 'utf8');
-            cfg = cfg.replace(
-              '// url: \"https://your-server.example.com\"',
+            let c = fs.readFileSync('capacitor.config.ts','utf8');
+            c = c.replace(
+              /\/\/ url: .https:\/\/your-server\.example\.com./,
               'url: \"${{ inputs.server_url }}\"'
             );
-            fs.writeFileSync('capacitor.config.ts', cfg);
+            fs.writeFileSync('capacitor.config.ts', c);
           "
 
       - name: Build web assets
         run: npm run build:web
 
-      - name: Add iOS platform
-        run: npx cap add ios
+      - name: Add & sync iOS platform
+        run: |
+          npx cap add ios 2>/dev/null || true
+          npx cap sync ios
 
-      - name: Sync to iOS
-        run: npx cap sync ios
+      # ── 署名準備 ──
+      - name: Install Apple certificate and provisioning profile
+        if: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 != '' }}
+        env:
+          P12_BASE64: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          PROVISION_BASE64: ${{ secrets.IOS_PROVISION_PROFILE_BASE64 }}
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -hex 12)
 
-      - name: Build iOS (unsigned)
+          # キーチェーン作成
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # 証明書インポート
+          echo "$P12_BASE64" | base64 --decode > $RUNNER_TEMP/cert.p12
+          security import $RUNNER_TEMP/cert.p12 \
+            -P "$P12_PASSWORD" \
+            -A -t cert -f pkcs12 \
+            -k "$KEYCHAIN_PATH"
+          security set-key-partition-list \
+            -S apple-tool:,apple: \
+            -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+
+          # プロビジョニングプロファイル
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "$PROVISION_BASE64" | base64 --decode \
+            > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+
+      # ── ビルド (署名あり / なし) ──
+      - name: Build iOS (signed)
+        if: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 != '' }}
         run: |
           cd ios/App
-          xcodebuild -workspace App.xcworkspace \
+          xcodebuild -project App.xcodeproj \
             -scheme App \
             -configuration Release \
             -sdk iphoneos \
-            -destination generic/platform=iOS \
+            -destination 'generic/platform=iOS' \
+            -archivePath $RUNNER_TEMP/App.xcarchive \
+            archive
+
+      - name: Build iOS (unsigned — 署名なし)
+        if: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 == '' }}
+        run: |
+          cd ios/App
+          xcodebuild -project App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             build
+          echo "⚠️  署名なしビルド: App Store には提出できません"
+          echo "    Secrets に証明書を追加してください (README 参照)"
 
-      - name: Upload build
+      # ── IPA 出力 ──
+      - name: Export IPA
+        if: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 != '' }}
+        run: |
+          cat > $RUNNER_TEMP/ExportOptions.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+            "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store-connect</string>
+            <key>destination</key>
+            <string>upload</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+          </dict>
+          </plist>
+          EOF
+
+          xcodebuild -exportArchive \
+            -archivePath $RUNNER_TEMP/App.xcarchive \
+            -exportPath $RUNNER_TEMP/export \
+            -exportOptionsPlist $RUNNER_TEMP/ExportOptions.plist
+
+      # ── TestFlight アップロード ──
+      - name: Upload to App Store Connect (TestFlight)
+        if: ${{ inputs.submit_to_testflight && secrets.APPSTORE_API_KEY_ID != '' }}
+        env:
+          ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          API_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.private_keys
+          echo "$API_KEY" > ~/.private_keys/AuthKey_${KEY_ID}.p8
+
+          xcrun altool --upload-app \
+            --type ios \
+            --file "$RUNNER_TEMP/export/Experimental Garden.ipa" \
+            --apiKey "$KEY_ID" \
+            --apiIssuer "$ISSUER_ID"
+
+          echo "✅ TestFlight にアップロード完了!"
+          echo "   App Store Connect → TestFlight → 外部テスターを招待"
+
+      # ── アーティファクト保存 ──
+      - name: Upload IPA artifact
+        if: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 != '' }}
         uses: actions/upload-artifact@v4
         with:
-          name: ios-build
+          name: ios-ipa
+          path: ${{ runner.temp }}/export/*.ipa
+
+      - name: Upload unsigned build artifact
+        if: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 == '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-unsigned-build
           path: ios/App/build/
           if-no-files-found: warn
+
+      # ── クリーンアップ ──
+      - name: Clean up keychain
+        if: always()
+        run: |
+          security delete-keychain $RUNNER_TEMP/app-signing.keychain-db 2>/dev/null || true
+          rm -f $RUNNER_TEMP/cert.p12
