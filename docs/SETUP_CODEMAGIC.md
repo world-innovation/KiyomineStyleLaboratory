@@ -92,11 +92,16 @@ Chromebook / Windows / Linux から **Mac不要** で iOS アプリを App Store
 1. Codemagic → Team settings → Integrations
    → 「App Store Connect」
 2. 「Add key」:
+   - Name: Codemagic   ← ★ この名前が重要 (codemagic.yaml と一致させる)
    - Issuer ID: (5a でメモしたもの)
    - Key ID: (5a でメモしたもの)
    - API Key: (.p8 ファイルの中身を貼り付け)
 3. 「Save」
 ```
+
+> **重要:** Name は `Codemagic` にしてください。
+> `codemagic.yaml` の `integrations.app_store_connect: Codemagic` と一致する必要があります。
+> 別の名前にした場合は `codemagic.yaml` の該当箇所も変更してください。
 
 ### 5c: コード署名を設定
 
